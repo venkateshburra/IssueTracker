@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useWorkspace } from "../context/WorkspaceContext";
 import TaskDetail from "../components/TaskDetail";
 
 const PRIORITY_COLORS = {
@@ -34,6 +35,10 @@ const EMPTY_FORM = {
 
 export default function Tasks() {
   const { user, userProfile, isAdmin, isPM } = useAuth();
+  const { activeWorkspace, isWorkspaceAdmin, isWorkspacePM } = useWorkspace();
+  // Use workspace-level role for RBAC
+  const effectiveAdmin = isAdmin || isWorkspaceAdmin;
+  const effectivePM = isPM || isWorkspacePM;
   const [tasks, setTasks] = useState([]);
   const [sections, setSections] = useState([]);
   const [members, setMembers] = useState([]);
@@ -48,28 +53,26 @@ export default function Tasks() {
   const [formData, setFormData] = useState(EMPTY_FORM);
 
   useEffect(() => {
-    if (user) {
+    if (user && activeWorkspace) {
       getTasks();
       getSections();
       getMembers();
     }
-  }, [user]);
+  }, [user, activeWorkspace]);
 
   async function getTasks() {
     setLoading(true);
+    if (!activeWorkspace) return;
     try {
-      let query = supabase.from("tasks").select("*");
+      let query = supabase.from("tasks").select("*").eq("workspace_id", activeWorkspace.id);
 
-      if (isAdmin) {
-        // Admin sees all tasks
+      if (effectiveAdmin) {
         query = query.order("created_at", { ascending: false });
-      } else if (isPM) {
-        // PM sees all tasks except admin-restricted ones not assigned to them
+      } else if (effectivePM) {
         query = query
           .or(`visibility_role.eq.all,assigned_to.eq.${user.id},created_by.eq.${user.id}`)
           .order("created_at", { ascending: false });
       } else {
-        // Member sees only tasks assigned to them or created by them
         query = query
           .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
           .order("created_at", { ascending: false });
@@ -84,25 +87,32 @@ export default function Tasks() {
   }
 
   async function getSections() {
+    if (!activeWorkspace) return;
     const { data } = await supabase
       .from("sections")
       .select("*")
+      .eq("workspace_id", activeWorkspace.id)
       .order("created_at", { ascending: false });
     if (data) setSections(data);
   }
 
   async function getMembers() {
+    if (!activeWorkspace) return;
+    // Get profiles of workspace members
     const { data } = await supabase
-      .from("profiles")
-      .select("id, name, email")
-      .order("name");
-    if (data) setMembers(data);
+      .from("workspace_members")
+      .select("role, profiles(id, name, email)")
+      .eq("workspace_id", activeWorkspace.id)
+      .order("created_at", { ascending: true });
+    if (data) {
+      setMembers(data.map((row) => ({ ...row.profiles, wsRole: row.role })));
+    }
   }
 
   function canEditTask(task) {
     if (!task || !userProfile) return false;
-    if (isAdmin) return true;
-    if (isPM && task.visibility_role === "admin") return false;
+    if (effectiveAdmin) return true;
+    if (effectivePM && task.visibility_role === "admin") return false;
     if (task.created_by === user.id) return true;
     return false;
   }
@@ -133,7 +143,7 @@ export default function Tasks() {
 
         const { data: newTask, error } = await supabase
           .from("tasks")
-          .insert({ ...payload, created_by: user.id, share_token: shareToken })
+          .insert({ ...payload, created_by: user.id, share_token: shareToken, workspace_id: activeWorkspace?.id })
           .select()
           .single();
 
@@ -322,7 +332,7 @@ export default function Tasks() {
             </div>
 
             {/* Visibility — only admin can restrict */}
-            {isAdmin && (
+            {(isAdmin || isWorkspaceAdmin) && (
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Visibility</label>
                 <select

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useWorkspace } from "../context/WorkspaceContext";
 import TaskDetail from "../components/TaskDetail";
 
 const COLUMNS = [
@@ -22,6 +23,9 @@ const PRIORITY_BADGE = {
 
 export default function Kanban() {
   const { user, isAdmin, isPM } = useAuth();
+  const { activeWorkspace, isWorkspaceAdmin, isWorkspacePM } = useWorkspace();
+  const effectiveAdmin = isAdmin || isWorkspaceAdmin;
+  const effectivePM = isPM || isWorkspacePM;
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [draggedTask, setDraggedTask] = useState(null);
@@ -29,17 +33,18 @@ export default function Kanban() {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
 
   useEffect(() => {
-    if (user) getTasks();
-  }, [user]);
+    if (user && activeWorkspace) getTasks();
+  }, [user, activeWorkspace]);
 
   async function getTasks() {
     setLoading(true);
+    if (!activeWorkspace) return;
     try {
-      let query = supabase.from("tasks").select("*");
+      let query = supabase.from("tasks").select("*").eq("workspace_id", activeWorkspace.id);
 
-      if (isAdmin) {
+      if (effectiveAdmin) {
         query = query.order("created_at", { ascending: false });
-      } else if (isPM) {
+      } else if (effectivePM) {
         query = query
           .or(`visibility_role.eq.all,assigned_to.eq.${user.id},created_by.eq.${user.id}`)
           .order("created_at", { ascending: false });

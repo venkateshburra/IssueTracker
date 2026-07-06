@@ -13,35 +13,37 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at timestamptz DEFAULT now()
 );
 
--- ── teams ─────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS teams (
+-- ── workspaces ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS workspaces (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name       text NOT NULL,
   created_by uuid REFERENCES profiles(id) ON DELETE SET NULL,
   created_at timestamptz DEFAULT now()
 );
 
--- ── team_members ──────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS team_members (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  team_id    uuid REFERENCES teams(id) ON DELETE CASCADE,
-  user_id    uuid REFERENCES profiles(id) ON DELETE CASCADE,
-  role       text NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'pm', 'member')),
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(team_id, user_id)
+-- ── workspace_members ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS workspace_members (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id      uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  role         text NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'pm', 'member')),
+  created_at   timestamptz DEFAULT now(),
+  UNIQUE(workspace_id, user_id)
 );
 
 -- ── sections ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS sections (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       text NOT NULL,
-  created_by uuid REFERENCES profiles(id) ON DELETE SET NULL,
-  created_at timestamptz DEFAULT now()
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid REFERENCES workspaces(id) ON DELETE CASCADE,
+  name         text NOT NULL,
+  created_by   uuid REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at   timestamptz DEFAULT now()
 );
 
 -- ── tasks ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS tasks (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id    uuid REFERENCES workspaces(id) ON DELETE CASCADE,
   title           text NOT NULL,
   description     text,
   status          text NOT NULL DEFAULT 'Todo' CHECK (status IN ('Todo', 'In Progress', 'Done')),
@@ -75,22 +77,26 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- ── Indexes for performance ───────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_tasks_created_by    ON tasks(created_by);
-CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to   ON tasks(assigned_to);
-CREATE INDEX IF NOT EXISTS idx_tasks_section_id    ON tasks(section_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_share_token   ON tasks(share_token);
-CREATE INDEX IF NOT EXISTS idx_comments_task_id    ON comments(task_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user  ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_read  ON notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_user       ON workspace_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace  ON workspace_members(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_sections_workspace           ON sections(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_workspace              ON tasks(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_by             ON tasks(created_by);
+CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to            ON tasks(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_tasks_section_id             ON tasks(section_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_share_token            ON tasks(share_token);
+CREATE INDEX IF NOT EXISTS idx_comments_task_id             ON comments(task_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user           ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read           ON notifications(user_id, is_read);
 
 -- ── Disable RLS (development) ─────────────────────────────
-ALTER TABLE profiles      DISABLE ROW LEVEL SECURITY;
-ALTER TABLE teams         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE team_members  DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sections      DISABLE ROW LEVEL SECURITY;
-ALTER TABLE tasks         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE comments      DISABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles           DISABLE ROW LEVEL SECURITY;
+ALTER TABLE workspaces         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE workspace_members  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sections           DISABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks              DISABLE ROW LEVEL SECURITY;
+ALTER TABLE comments           DISABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications      DISABLE ROW LEVEL SECURITY;
 
 -- ── Auto-create profile on signup (Supabase trigger) ──────
 CREATE OR REPLACE FUNCTION public.handle_new_user()

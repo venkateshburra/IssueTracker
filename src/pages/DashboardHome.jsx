@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../utils/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useWorkspace } from "../context/WorkspaceContext";
 
 const PRIORITY_COLORS = {
   P1: "bg-red-100 text-red-700",
@@ -11,21 +12,25 @@ const PRIORITY_COLORS = {
 
 export default function DashboardHome() {
   const { user, userProfile, isAdmin, isPM } = useAuth();
+  const { activeWorkspace, isWorkspaceAdmin, isWorkspacePM } = useWorkspace();
+  const effectiveAdmin = isAdmin || isWorkspaceAdmin;
+  const effectivePM = isPM || isWorkspacePM;
   const [stats, setStats] = useState({ total: 0, todo: 0, inProgress: 0, done: 0, overdue: 0 });
   const [recentTasks, setRecentTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) loadDashboard();
-  }, [user]);
+    if (user && activeWorkspace) loadDashboard();
+  }, [user, activeWorkspace]);
 
   async function loadDashboard() {
     setLoading(true);
+    if (!activeWorkspace) return;
     try {
-      let query = supabase.from("tasks").select("*");
+      let query = supabase.from("tasks").select("*").eq("workspace_id", activeWorkspace.id);
 
-      if (!isAdmin) {
-        if (isPM) {
+      if (!effectiveAdmin) {
+        if (effectivePM) {
           query = query.or(`visibility_role.eq.all,assigned_to.eq.${user.id},created_by.eq.${user.id}`);
         } else {
           query = query.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);

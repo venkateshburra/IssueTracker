@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useWorkspace } from "../context/WorkspaceContext";
 
 export default function Sections() {
   const { user } = useAuth();
+  const { activeWorkspace } = useWorkspace();
 
   const [name, setName] = useState("");
   const [sections, setSections] = useState([]);
@@ -11,11 +13,13 @@ export default function Sections() {
   const [editingId, setEditingId] = useState(null);
 
   async function getSections() {
+    if (!activeWorkspace) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("sections")
         .select("*")
+        .eq("workspace_id", activeWorkspace.id)
         .order("created_at", { ascending: false });
 
       if (!error && data) {
@@ -69,6 +73,7 @@ export default function Sections() {
         const { error } = await supabase.from("sections").insert({
           name: name.trim(),
           created_by: user.id,
+          workspace_id: activeWorkspace.id,
         });
 
         if (error) {
@@ -107,10 +112,10 @@ export default function Sections() {
   }
 
   useEffect(() => {
-    if (user) {
+    if (user && activeWorkspace) {
       getSections();
     }
-  }, [user]);
+  }, [user, activeWorkspace]);
 
   return (
     <div>

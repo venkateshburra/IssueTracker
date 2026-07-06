@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useWorkspace } from "../context/WorkspaceContext";
 import TaskDetail from "../components/TaskDetail";
 
 const PRIORITY_COLORS = {
@@ -16,6 +17,9 @@ const STATUS_COLORS = {
 
 export default function List() {
   const { user, isAdmin, isPM } = useAuth();
+  const { activeWorkspace, isWorkspaceAdmin, isWorkspacePM } = useWorkspace();
+  const effectiveAdmin = isAdmin || isWorkspaceAdmin;
+  const effectivePM = isPM || isWorkspacePM;
   const [tasks, setTasks] = useState([]);
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,19 +29,20 @@ export default function List() {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
 
   useEffect(() => {
-    if (user) {
+    if (user && activeWorkspace) {
       getTasks();
       getSections();
     }
-  }, [user, filterStatus, filterPriority]);
+  }, [user, activeWorkspace, filterStatus, filterPriority]);
 
   async function getTasks() {
     setLoading(true);
+    if (!activeWorkspace) return;
     try {
-      let query = supabase.from("tasks").select("*");
+      let query = supabase.from("tasks").select("*").eq("workspace_id", activeWorkspace.id);
 
-      if (!isAdmin) {
-        if (isPM) {
+      if (!effectiveAdmin) {
+        if (effectivePM) {
           query = query.or(`visibility_role.eq.all,assigned_to.eq.${user.id},created_by.eq.${user.id}`);
         } else {
           query = query.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
@@ -56,7 +61,8 @@ export default function List() {
   }
 
   async function getSections() {
-    const { data } = await supabase.from("sections").select("id, name");
+    if (!activeWorkspace) return;
+    const { data } = await supabase.from("sections").select("id, name").eq("workspace_id", activeWorkspace.id);
     if (data) setSections(data);
   }
 
