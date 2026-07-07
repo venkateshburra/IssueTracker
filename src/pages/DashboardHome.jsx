@@ -31,9 +31,11 @@ export default function DashboardHome() {
 
       if (!effectiveAdmin) {
         if (effectivePM) {
-          query = query.or(`visibility_role.eq.all,assigned_to.eq.${user.id},created_by.eq.${user.id}`);
+          query = query.or(`visibility_role.eq.all,visibility_role.eq.pm,assigned_to.eq.${user.id},created_by.eq.${user.id}`);
         } else {
-          query = query.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
+          query = query
+            .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+            .not("visibility_role", "eq", "admin");
         }
       }
 

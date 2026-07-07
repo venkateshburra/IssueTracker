@@ -46,11 +46,12 @@ export default function Kanban() {
         query = query.order("created_at", { ascending: false });
       } else if (effectivePM) {
         query = query
-          .or(`visibility_role.eq.all,assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+          .or(`visibility_role.eq.all,visibility_role.eq.pm,assigned_to.eq.${user.id},created_by.eq.${user.id}`)
           .order("created_at", { ascending: false });
       } else {
         query = query
           .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+          .not("visibility_role", "eq", "admin")
           .order("created_at", { ascending: false });
       }
 

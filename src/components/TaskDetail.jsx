@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 import { useAuth } from "../context/AuthContext";
+import { useWorkspace } from "../context/WorkspaceContext";
 
 const STATUS_OPTIONS = ["Todo", "In Progress", "Done"];
 const PRIORITY_COLORS = {
@@ -16,7 +17,8 @@ const LABEL_COLORS = {
 };
 
 export default function TaskDetail({ taskId, onClose, onTaskUpdated }) {
-  const { user, userProfile, isAdmin, isPM } = useAuth();
+  const { user, userProfile } = useAuth();
+  const { isWorkspaceAdmin, isWorkspacePM } = useWorkspace();
 
   const [task, setTask] = useState(null);
   const [comments, setComments] = useState([]);
@@ -52,11 +54,11 @@ export default function TaskDetail({ taskId, onClose, onTaskUpdated }) {
   }
 
   // RBAC: Can the current user edit/delete this task?
-  // PM cannot edit/delete tasks created by Admin
+  // PM cannot edit/delete tasks created by Admin with admin-only visibility
   function canEditTask() {
     if (!task || !userProfile) return false;
-    if (isAdmin) return true;
-    if (isPM && task.visibility_role === "admin") return false; // admin-restricted
+    if (isWorkspaceAdmin) return true;
+    if (isWorkspacePM && task.visibility_role === "admin") return false; // admin-restricted
     if (task.created_by === user.id) return true;
     return false;
   }
@@ -97,6 +99,7 @@ export default function TaskDetail({ taskId, onClose, onTaskUpdated }) {
   }
 
   async function changeStatus(newStatus) {
+    if (!isWorkspaceAdmin && !isWorkspacePM) return; // Members cannot change status
     setStatusChanging(true);
     const { error } = await supabase
       .from("tasks")
@@ -180,19 +183,29 @@ export default function TaskDetail({ taskId, onClose, onTaskUpdated }) {
 
           {/* Meta grid */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Status — anyone can change */}
+            {/* Status — Admin and PM can change, Member sees it read-only */}
             <div>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Status</h3>
-              <select
-                value={task.status}
-                onChange={(e) => changeStatus(e.target.value)}
-                disabled={statusChanging}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none transition"
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+              {isWorkspaceAdmin || isWorkspacePM ? (
+                <select
+                  value={task.status}
+                  onChange={(e) => changeStatus(e.target.value)}
+                  disabled={statusChanging}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-blue-500 outline-none transition"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className={`inline-block px-3 py-2 rounded-lg text-sm font-semibold ${
+                  task.status === "Done" ? "bg-green-100 text-green-700" :
+                  task.status === "In Progress" ? "bg-blue-100 text-blue-700" :
+                  "bg-gray-100 text-gray-700"
+                }`}>
+                  {task.status}
+                </span>
+              )}
             </div>
 
             {/* Due date */}
@@ -231,7 +244,7 @@ export default function TaskDetail({ taskId, onClose, onTaskUpdated }) {
           )}
 
           {/* RBAC notice for PM on admin tasks */}
-          {isPM && task.visibility_role === "admin" && (
+          {isWorkspacePM && task.visibility_role === "admin" && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
               🔒 This task was created with admin-only visibility. You can comment and change status, but cannot edit or delete it.
             </div>

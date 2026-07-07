@@ -67,14 +67,18 @@ export default function Tasks() {
       let query = supabase.from("tasks").select("*").eq("workspace_id", activeWorkspace.id);
 
       if (effectiveAdmin) {
+        // Admin sees everything in the workspace
         query = query.order("created_at", { ascending: false });
       } else if (effectivePM) {
+        // PM sees: all tasks with visibility "all" or "pm", plus any task assigned to or created by them
         query = query
-          .or(`visibility_role.eq.all,assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+          .or(`visibility_role.eq.all,visibility_role.eq.pm,assigned_to.eq.${user.id},created_by.eq.${user.id}`)
           .order("created_at", { ascending: false });
       } else {
+        // Member sees only tasks assigned to them or created by them (that aren't admin/pm restricted)
         query = query
           .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+          .not("visibility_role", "eq", "admin")
           .order("created_at", { ascending: false });
       }
 
