@@ -64,7 +64,10 @@ export default function Tasks() {
     setLoading(true);
     if (!activeWorkspace) return;
     try {
-      let query = supabase.from("tasks").select("*").eq("workspace_id", activeWorkspace.id);
+      let query = supabase
+        .from("tasks")
+        .select("*")
+        .eq("workspace_id", activeWorkspace.id);
 
       if (effectiveAdmin) {
         // Admin sees everything in the workspace
@@ -72,7 +75,9 @@ export default function Tasks() {
       } else if (effectivePM) {
         // PM sees: all tasks with visibility "all" or "pm", plus any task assigned to or created by them
         query = query
-          .or(`visibility_role.eq.all,visibility_role.eq.pm,assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+          .or(
+            `visibility_role.eq.all,visibility_role.eq.pm,assigned_to.eq.${user.id},created_by.eq.${user.id}`,
+          )
           .order("created_at", { ascending: false });
       } else {
         // Member sees only tasks assigned to them or created by them (that aren't admin/pm restricted)
@@ -139,7 +144,10 @@ export default function Tasks() {
           .from("tasks")
           .update(payload)
           .eq("id", editingId);
-        if (error) { alert("Error updating task: " + error.message); return; }
+        if (error) {
+          alert("Error updating task: " + error.message);
+          return;
+        }
       } else {
         const shareToken = crypto.randomUUID
           ? crypto.randomUUID()
@@ -147,11 +155,19 @@ export default function Tasks() {
 
         const { data: newTask, error } = await supabase
           .from("tasks")
-          .insert({ ...payload, created_by: user.id, share_token: shareToken, workspace_id: activeWorkspace?.id })
+          .insert({
+            ...payload,
+            created_by: user.id,
+            share_token: shareToken,
+            workspace_id: activeWorkspace?.id,
+          })
           .select()
           .single();
 
-        if (error) { alert("Error creating task: " + error.message); return; }
+        if (error) {
+          alert("Error creating task: " + error.message);
+          return;
+        }
 
         // Notify assigned user
         if (payload.assigned_to && payload.assigned_to !== user.id) {
@@ -215,8 +231,11 @@ export default function Tasks() {
     return matchSearch && matchStatus && matchPriority && matchSection;
   });
 
+
   const isOverdue = (task) =>
-    task.due_date && new Date(task.due_date) < new Date() && task.status !== "Done";
+    task.due_date &&
+    new Date(task.due_date) < new Date() &&
+    task.status !== "Done";
 
   return (
     <div>
@@ -224,7 +243,10 @@ export default function Tasks() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-gray-500 mt-1">{filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""} found</p>
+          <p className="text-gray-500 mt-1">
+            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}{" "}
+            found
+          </p>
         </div>
         {!showForm && (
           <button
@@ -245,21 +267,29 @@ export default function Tasks() {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Title *</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Title *
+              </label>
               <input
                 type="text"
                 placeholder="Task title"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Priority</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Priority
+              </label>
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, priority: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm"
               >
                 <option value="P1">P1 — Critical</option>
@@ -269,10 +299,14 @@ export default function Tasks() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Status</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Status
+              </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, status: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm"
               >
                 <option value="Todo">Todo</option>
@@ -282,10 +316,14 @@ export default function Tasks() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Label</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Label
+              </label>
               <select
                 value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, label: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm"
               >
                 <option value="Bug">🐛 Bug</option>
@@ -296,24 +334,34 @@ export default function Tasks() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Section</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Section
+              </label>
               <select
                 value={formData.section_id}
-                onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, section_id: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm"
               >
                 <option value="">No section</option>
                 {sections.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Assign To</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Assign To
+              </label>
               <select
                 value={formData.assigned_to}
-                onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, assigned_to: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm"
               >
                 <option value="">Unassigned</option>
@@ -326,11 +374,15 @@ export default function Tasks() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Due Date</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Due Date
+              </label>
               <input
                 type="date"
                 value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, due_date: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm"
               />
             </div>
@@ -338,10 +390,17 @@ export default function Tasks() {
             {/* Visibility — only admin can restrict */}
             {(isAdmin || isWorkspaceAdmin) && (
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Visibility</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Visibility
+                </label>
                 <select
                   value={formData.visibility_role}
-                  onChange={(e) => setFormData({ ...formData, visibility_role: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      visibility_role: e.target.value,
+                    })
+                  }
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm"
                 >
                   <option value="all">Everyone</option>
@@ -352,11 +411,15 @@ export default function Tasks() {
             )}
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Description
+              </label>
               <textarea
                 placeholder="Describe the task..."
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition text-sm resize-none"
                 rows="3"
               />
@@ -369,7 +432,11 @@ export default function Tasks() {
               disabled={loading}
               className="flex-1 bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white py-2.5 rounded-xl font-semibold transition text-sm"
             >
-              {loading ? "Saving..." : editingId ? "Update Task" : "Create Task"}
+              {loading
+                ? "Saving..."
+                : editingId
+                  ? "Update Task"
+                  : "Create Task"}
             </button>
             <button
               onClick={cancelForm}
@@ -420,13 +487,20 @@ export default function Tasks() {
           >
             <option value="">All Sections</option>
             {sections.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
             ))}
           </select>
         </div>
         {(searchTerm || filterStatus || filterPriority || filterSection) && (
           <button
-            onClick={() => { setSearchTerm(""); setFilterStatus(""); setFilterPriority(""); setFilterSection(""); }}
+            onClick={() => {
+              setSearchTerm("");
+              setFilterStatus("");
+              setFilterPriority("");
+              setFilterSection("");
+            }}
             className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
             × Clear all filters
@@ -443,15 +517,21 @@ export default function Tasks() {
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
           <div className="text-5xl mb-3">🔍</div>
           <p className="text-gray-500 font-medium">No tasks found</p>
-          <p className="text-gray-400 text-sm mt-1">Try adjusting your filters or create a new task</p>
+          <p className="text-gray-400 text-sm mt-1">
+            Try adjusting your filters or create a new task
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           {filteredTasks.map((task) => {
             const overdue = isOverdue(task);
             const editable = canEditTask(task);
-            const sectionName = sections.find((s) => s.id === task.section_id)?.name;
-            const assigneeName = members.find((m) => m.id === task.assigned_to)?.name;
+            const sectionName = sections.find(
+              (s) => s.id === task.section_id,
+            )?.name;
+            const assigneeName = members.find(
+              (m) => m.id === task.assigned_to,
+            )?.name;
 
             return (
               <div
@@ -465,11 +545,17 @@ export default function Tasks() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="text-base">{LABEL_ICONS[task.label] || "✅"}</span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${PRIORITY_COLORS[task.priority]}`}>
+                        <span className="text-base">
+                          {LABEL_ICONS[task.label] || "✅"}
+                        </span>
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${PRIORITY_COLORS[task.priority]}`}
+                        >
                           {task.priority}
                         </span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${STATUS_COLORS[task.status]}`}>
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${STATUS_COLORS[task.status]}`}
+                        >
                           {task.status}
                         </span>
                         {sectionName && (
@@ -489,33 +575,45 @@ export default function Tasks() {
                         )}
                       </div>
 
-                      <h3 className="text-base font-bold text-gray-900 truncate">{task.title}</h3>
+                      <h3 className="text-base font-bold text-gray-900 truncate">
+                        {task.title}
+                      </h3>
                       {task.description && (
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                          {task.description}
+                        </p>
                       )}
 
                       <div className="flex flex-wrap gap-3 mt-3 text-xs text-gray-400">
                         {task.due_date && (
-                          <span className={overdue ? "text-red-500 font-medium" : ""}>
+                          <span
+                            className={
+                              overdue ? "text-red-500 font-medium" : ""
+                            }
+                          >
                             📅 {new Date(task.due_date).toLocaleDateString()}
                           </span>
                         )}
-                        {assigneeName && (
-                          <span>👤 {assigneeName}</span>
-                        )}
+                        {assigneeName && <span>👤 {assigneeName}</span>}
                       </div>
                     </div>
 
                     {editable && (
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
                         <button
-                          onClick={(e) => { e.stopPropagation(); openEdit(task); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(task);
+                          }}
                           className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition"
                         >
                           Edit
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTask(task.id);
+                          }}
                           className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition"
                         >
                           Delete

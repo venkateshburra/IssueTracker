@@ -31,7 +31,10 @@ export default function Sections() {
   async function addSection() {
     // Only admin can create sections
     if (!isWorkspaceAdmin) return;
-    if (!name.trim()) { alert("Section name is required"); return; }
+    if (!name.trim()) {
+      alert("Section name is required");
+      return;
+    }
 
     try {
       if (editingId) {
@@ -39,7 +42,10 @@ export default function Sections() {
           .from("sections")
           .update({ name: name.trim() })
           .eq("id", editingId);
-        if (error) { alert("Error updating section: " + error.message); return; }
+        if (error) {
+          alert("Error updating section: " + error.message);
+          return;
+        }
         setEditingId(null);
       } else {
         const { error } = await supabase.from("sections").insert({
@@ -47,7 +53,10 @@ export default function Sections() {
           created_by: user.id,
           workspace_id: activeWorkspace.id,
         });
-        if (error) { alert("Error creating section: " + error.message); return; }
+        if (error) {
+          alert("Error creating section: " + error.message);
+          return;
+        }
       }
       setName("");
       getSections();
@@ -106,7 +115,10 @@ export default function Sections() {
             </button>
             {editingId && (
               <button
-                onClick={() => { setEditingId(null); setName(""); }}
+                onClick={() => {
+                  setEditingId(null);
+                  setName("");
+                }}
                 className="w-full md:w-auto bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold transition"
               >
                 Cancel
@@ -126,7 +138,9 @@ export default function Sections() {
           <div className="text-5xl mb-4">📂</div>
           <p className="text-gray-500 text-lg font-medium">No sections yet</p>
           {isWorkspaceAdmin && (
-            <p className="text-gray-400 text-sm mt-1">Create your first section to organize tasks</p>
+            <p className="text-gray-400 text-sm mt-1">
+              Create your first section to organize tasks
+            </p>
           )}
         </div>
       ) : (
@@ -148,9 +162,15 @@ export default function Sections() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-bold text-gray-900 truncate">{section.name}</h2>
+                    <h2 className="text-xl font-bold text-gray-900 truncate">
+                      {section.name}
+                    </h2>
                     <p className="text-sm text-gray-500 mt-1">
-                      Created {new Date(section.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      Created{" "}
+                      {new Date(section.created_at).toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric", year: "numeric" },
+                      )}
                     </p>
                   </div>
                   <span className="text-2xl">📂</span>

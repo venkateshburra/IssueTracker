@@ -20,8 +20,9 @@ export function WorkspaceProvider({ children }) {
       setLoading(false);
       return;
     }
+    // Only reload if user id actually changed (not just a new object reference)
     loadWorkspaces();
-  }, [user]);
+  }, [user?.id]); // ← use user.id not user object
 
   async function loadWorkspaces() {
     setLoading(true);

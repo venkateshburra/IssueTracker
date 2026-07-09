@@ -73,10 +73,22 @@ export function AuthProvider({ children }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Ignore token refresh events — they don't change the user
+      // and cause unnecessary re-renders when switching tabs
+      if (event === "TOKEN_REFRESHED") return;
+
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      await loadProfile(currentUser);
+
+      // Only update state if user actually changed
+      setUser((prevUser) => {
+        if (prevUser?.id === currentUser?.id) return prevUser;
+        return currentUser;
+      });
+
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        await loadProfile(currentUser);
+      }
     });
 
     return () => subscription.unsubscribe();
