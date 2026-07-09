@@ -16,89 +16,27 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
+        {/* Public Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/share/:token" element={<ShareTask />} />
 
-        {/* Protected layout shell */}
+        {/* Protected Routes */}
         <Route
-          path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardHome />} />
+          <Route path="/dashboard" element={<DashboardHome />} />
+          <Route path="/sections" element={<Sections />} />
+          <Route path="/tasks" element={<Tasks />} />
+          <Route path="/kanban" element={<Kanban />} />
+          <Route path="/list" element={<List />} />
+          <Route path="/team" element={<Team />} />
+          <Route path="/notifications" element={<Notifications />} />
         </Route>
 
-        <Route
-          path="/sections"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Sections />} />
-        </Route>
-
-        <Route
-          path="/tasks"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Tasks />} />
-        </Route>
-
-        <Route
-          path="/kanban"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Kanban />} />
-        </Route>
-
-        <Route
-          path="/list"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<List />} />
-        </Route>
-
-        <Route
-          path="/team"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Team />} />
-        </Route>
-
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Notifications />} />
-        </Route>
-
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
